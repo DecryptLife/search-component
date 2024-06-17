@@ -1,29 +1,44 @@
 import React, { useEffect, useState } from "react";
 import { getBooks } from "../APIs/books.ts";
 import { BookResponse } from "../Types/types.ts";
+import useDebounce from "../Hooks/useDebounce.tsx";
+
 export const SearchBar: React.FC = () => {
   const [searchText, setSearchText] = useState<string>("");
   const [titles, setTitles] = useState<string[]>([]);
   const [selectedBook, setSelectedBook] = useState<string>("");
   const [queryTitles, setQueryTitles] = useState<string[]>([]);
 
-  const changeTitles = (val) => {
-    const newTitles = titles.filter((title) => {
-      return title.toLowerCase().includes(val.toLowerCase());
-    });
-
-    setQueryTitles(newTitles);
+  const changeTitles = (val: string) => {
+    if (val) {
+      const newTitles = titles.filter((title) =>
+        title.toLowerCase().includes(val.toLowerCase())
+      );
+      setQueryTitles(newTitles);
+    } else {
+      setQueryTitles([]);
+    }
   };
 
-  const handleSearchChange = (e) => {
-    setSearchText(e.target.value);
-    changeTitles(e.target.value);
+  const debouncedSearch = useDebounce(
+    (value: string) => changeTitles(value),
+    500,
+    {
+      trailing: false,
+    }
+  );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchText(value);
+    debouncedSearch(value);
   };
 
-  const handleSelectChange = (e) => {
-    setSearchText(e.target.innerText);
+  const handleSelectChange = (e: React.MouseEvent<HTMLInputElement>) => {
+    const value = e.currentTarget.getAttribute("value") || "";
+    setSearchText(value);
     setQueryTitles([]);
-    setSelectedBook(e.target.value);
+    setSelectedBook(value);
   };
 
   useEffect(() => {
@@ -34,7 +49,6 @@ export const SearchBar: React.FC = () => {
           return item.volumeInfo.title;
         });
 
-        console.log(titles);
         setTitles(titles);
       } catch (e) {
         console.log(e);
